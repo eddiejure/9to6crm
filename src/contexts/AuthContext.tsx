@@ -41,22 +41,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<string>('Initializing...');
 
   useEffect(() => {
+    let mounted = true;
+    console.log('🔄 AuthProvider useEffect started');
+    setDebugInfo('Starting auth check...');
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
+    const getInitialSession = async () => {
+      try {
+        console.log('🔍 Getting initial session...');
+        setDebugInfo('Checking session...');
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setDebugInfo(`Session error: ${error.message}`);
+          setLoading(false);
+          return;
+        }
+
+        console.log('✅ Session check complete:', session ? 'Found session' : 'No session');
+        setDebugInfo(session ? 'Session found, checking profile...' : 'No session found');
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          console.log('👤 No user, setting loading to false');
+          setDebugInfo('No user logged in');
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+        setDebugInfo(`Unexpected error: ${error}`);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    });
+    };
+
+    getInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
+        console.log('🔄 Auth state changed:', event, session?.user?.id);
+        setDebugInfo(`Auth changed: ${event}`);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -64,75 +104,122 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await fetchProfile(session.user.id);
         } else {
           setProfile(null);
+          setDebugInfo('User logged out');
           setLoading(false);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('🧹 AuthProvider cleanup');
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('👤 Fetching profile for user:', userId);
+      setDebugInfo('Loading profile...');
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
+      if (error) {
+        console.error('❌ Error fetching profile:', error);
+        setDebugInfo(`Profile error: ${error.message}`);
+        
+        // If profile doesn't exist, it should be created by the trigger
+        // Just set loading to false and let the user continue
+        console.log('📝 Creating new profile...');
+        setDebugInfo('Creating profile...');
+        setProfile(null);
       } else if (data) {
+        console.log('Profile fetched successfully:', data);
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Unexpected error fetching profile:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true);
+    setDebugInfo('Signing in...');
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    if (error) {
+      setDebugInfo(`Sign in error: ${error.message}`);
+      setLoading(false);
+    }
+    
     return { error };
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
+    setLoading(true);
+    setDebugInfo('Creating account...');
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    // Profile creation is now handled automatically by database trigger
-    // Additional profile data can be updated after the user is created
-    if (!error && data.user && userData) {
+    if (error) {
+      setLoading(false);
+      return { error };
+    }
+
+    // The trigger will create the basic profile
+    // Update it with additional data if user was created
+    if (data.user && userData) {
       // Wait a moment for the trigger to create the profile
       setTimeout(async () => {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: userData.full_name,
-            company_name: userData.company_name,
-            tax_number: userData.tax_number,
-            vat_id: userData.vat_id,
-            address: userData.address,
-          })
-          .eq('id', data.user.id);
+        try {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              full_name: userData.full_name,
+              company_name: userData.company_name,
+              tax_number: userData.tax_number,
+              vat_id: userData.vat_id,
+              address: userData.address,
+            })
+            .eq('id', data.user.id);
 
-        if (updateError) {
-          console.error('Error updating profile:', updateError);
+          if (updateError) {
+            console.error('❌ Error updating profile:', updateError);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching profile:', error);
+          setDebugInfo(`Profile error: ${error.message}`);
+          setProfile(null);
+        } finally {
+          setLoading(false);
         }
       }, 1000);
     }
 
+    setLoading(false);
     return { error };
   };
 
   const signOut = async () => {
+    setLoading(true);
+    setDebugInfo('Signing out...');
     await supabase.auth.signOut();
+    setProfile(null);
+    setDebugInfo('Signed out');
+    setLoading(false);
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
@@ -155,6 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     session,
     loading,
+    debugInfo,
     signIn,
     signUp,
     signOut,
