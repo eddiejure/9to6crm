@@ -4,6 +4,8 @@ import { Database } from '../types/database';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+let supabase: any;
+
 if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project-ref') || supabaseAnonKey.includes('your-anon-public-key')) {
   console.error('⚠️  Supabase not configured properly!');
   console.error('Please update your .env file with actual Supabase credentials:');
@@ -13,7 +15,7 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project-ref')
   console.error('4. Restart the development server');
   
   // Create a mock client to prevent the app from crashing
-  export const supabase = {
+  supabase = {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
@@ -26,7 +28,9 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project-ref')
       insert: () => Promise.resolve({ error: new Error('Supabase not configured') }),
       update: () => ({ eq: () => Promise.resolve({ error: new Error('Supabase not configured') }) })
     })
-  } as any;
+  };
 } else {
-  export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 }
+
+export { supabase };
