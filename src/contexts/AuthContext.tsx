@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user.id, session.user.email);
         } else {
           console.log('👤 No user, setting loading to false');
           setDebugInfo('No user logged in');
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user.id, session.user.email);
         } else {
           setProfile(null);
           setDebugInfo('User logged out');
@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string) => {
     try {
       console.log('👤 Fetching profile for user:', userId);
       setDebugInfo('Loading profile...');
@@ -138,11 +138,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('📝 Profile not found, attempting to create...');
           setDebugInfo('Profile not found, creating...');
           
-          // Use the user object from the context state
-          if (user?.email) {
+          // Use the email passed as parameter or try to get it from session
+          const emailToUse = userEmail || user?.email;
+          if (emailToUse) {
             const { data: newProfileData, error: createError } = await supabase
               .from('profiles')
-              .insert({ id: userId, email: user.email })
+              .insert({ id: userId, email: emailToUse })
               .select('*')
               .single();
 
@@ -155,7 +156,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setProfile(newProfileData);
             }
           } else {
-            console.warn('User email not available to create profile.');
+            console.warn('User email not available to create profile. UserId:', userId);
+            setDebugInfo('Email not available for profile creation');
             setProfile(null);
           }
         } else {
@@ -171,6 +173,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setDebugInfo(`Unexpected error: ${error}`);
       setProfile(null);
     } finally {
+      console.log('🏁 fetchProfile completed, setting loading to false');
+      setDebugInfo('Profile loading completed');
       setLoading(false);
     }
   };
