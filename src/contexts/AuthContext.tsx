@@ -151,12 +151,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
+    setDebugInfo('Signing in...');
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
     if (error) {
+      setDebugInfo(`Sign in error: ${error.message}`);
       setLoading(false);
     }
     
@@ -165,6 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, userData: any) => {
     setLoading(true);
+    setDebugInfo('Creating account...');
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -196,42 +199,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (updateError) {
             console.error('❌ Error updating profile:', updateError);
           }
-      } catch (error) {
-        console.error('❌ Error fetching profile:', error);
-        setDebugInfo(`Profile error: ${error.message}`);
-        setProfile(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const signIn = async (email: string, password: string) => {
-      setLoading(true);
-      setDebugInfo('Signing in...');
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        setDebugInfo(`Sign in error: ${error.message}`);
-        setLoading(false);
-      }
-      
-      return { error };
-    };
-
-    const signUp = async (email: string, password: string, userData: any) => {
-      setLoading(true);
-      setDebugInfo('Creating account...');
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) {
-        setLoading(false);
+        } catch (error) {
+          console.error('❌ Error fetching profile:', error);
+          setDebugInfo(`Profile error: ${error.message}`);
+          setProfile(null);
+        } finally {
+          setLoading(false);
+        }
       }, 1000);
     }
 
