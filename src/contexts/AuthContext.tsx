@@ -106,27 +106,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
     });
 
-    if (!error && data.user) {
-      // Determine role based on email
-      const role = email === 'edvinas@hotmail.de' ? 'superadmin' : 'user';
-      
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: data.user.email!,
-          full_name: userData.full_name,
-          company_name: userData.company_name,
-          role,
-          tax_number: userData.tax_number,
-          vat_id: userData.vat_id,
-          address: userData.address,
-        });
+    // Profile creation is now handled automatically by database trigger
+    // Additional profile data can be updated after the user is created
+    if (!error && data.user && userData) {
+      // Wait a moment for the trigger to create the profile
+      setTimeout(async () => {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: userData.full_name,
+            company_name: userData.company_name,
+            tax_number: userData.tax_number,
+            vat_id: userData.vat_id,
+            address: userData.address,
+          })
+          .eq('id', data.user.id);
 
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-      }
+        if (updateError) {
+          console.error('Error updating profile:', updateError);
+        }
+      }, 1000);
     }
 
     return { error };
