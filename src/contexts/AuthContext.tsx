@@ -132,17 +132,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('❌ Error fetching profile:', error);
         setDebugInfo(`Profile error: ${error.message}`);
         
-        // If profile doesn't exist, it should be created by the trigger
-        // Just set loading to false and let the user continue
-        console.log('📝 Creating new profile...');
-        setDebugInfo('Creating profile...');
-        setProfile(null);
+        // If profile not found (e.g., trigger didn't run or race condition)
+        // Attempt to create it directly
+        if (error.code === 'PGRST116' || error.message.includes('0 rows')) {
+          console.log('📝 Profile not found, attempting to create...');
+          setDebugInfo('Profile not found, creating...');
+          
+          // Use the user object from the context state
+          if (user?.email) {
+            const { data: newProfileData, error: createError } = await supabase
+              .from('profiles')
+              .insert({ id: userId, email: user.email })
+              .select('*')
+              .single();
+
+            if (createError) {
+              console.error('❌ Error creating profile:', createError);
+              setDebugInfo(`Error creating profile: ${createError.message}`);
+              setProfile(null);
+            } else if (newProfileData) {
+              console.log('✅ Profile created successfully:', newProfileData);
+              setProfile(newProfileData);
+            }
+          } else {
+            console.warn('User email not available to create profile.');
+            setProfile(null);
+          }
+        } else {
+          // Other types of errors
+          setProfile(null);
+        }
       } else if (data) {
-        console.log('Profile fetched successfully:', data);
+        console.log('✅ Profile fetched successfully:', data);
         setProfile(data);
       }
     } catch (error) {
       console.error('Unexpected error fetching profile:', error);
+      setDebugInfo(`Unexpected error: ${error}`);
       setProfile(null);
     } finally {
       setLoading(false);
