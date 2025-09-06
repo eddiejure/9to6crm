@@ -41,33 +41,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<string>('Initializing...');
 
   useEffect(() => {
     let mounted = true;
+    console.log('🔄 AuthProvider useEffect started');
+    setDebugInfo('Starting auth check...');
 
     // Get initial session
     const getInitialSession = async () => {
       try {
+        console.log('🔍 Getting initial session...');
+        setDebugInfo('Checking session...');
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
         if (error) {
           console.error('Error getting session:', error);
+          setDebugInfo(`Session error: ${error.message}`);
           setLoading(false);
           return;
         }
 
+        console.log('✅ Session check complete:', session ? 'Found session' : 'No session');
+        setDebugInfo(session ? 'Session found, checking profile...' : 'No session found');
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           await fetchProfile(session.user.id);
         } else {
+          console.log('👤 No user, setting loading to false');
+          setDebugInfo('No user logged in');
           setLoading(false);
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
+        setDebugInfo(`Unexpected error: ${error}`);
         if (mounted) {
           setLoading(false);
         }
@@ -81,7 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth state changed:', event, session?.user?.id);
+        console.log('🔄 Auth state changed:', event, session?.user?.id);
+        setDebugInfo(`Auth changed: ${event}`);
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -90,12 +104,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await fetchProfile(session.user.id);
         } else {
           setProfile(null);
+          setDebugInfo('User logged out');
           setLoading(false);
         }
       }
     );
 
     return () => {
+      console.log('🧹 AuthProvider cleanup');
       mounted = false;
       subscription.unsubscribe();
     };
@@ -103,7 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user:', userId);
+      console.log('👤 Fetching profile for user:', userId);
+      setDebugInfo('Loading profile...');
       
       const { data, error } = await supabase
         .from('profiles')
@@ -112,10 +129,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
+        setDebugInfo(`Profile error: ${error.message}`);
         
         // If profile doesn't exist, it should be created by the trigger
         // Just set loading to false and let the user continue
+          console.log('📝 Creating new profile...');
+          setDebugInfo('Creating profile...');
         setProfile(null);
       } else if (data) {
         console.log('Profile fetched successfully:', data);
@@ -174,36 +194,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('id', data.user.id);
 
           if (updateError) {
-            console.error('Error updating profile:', updateError);
-          }
+            console.log('✅ Profile created successfully:', newProfile);
+    setDebugInfo('Signing up...');
+            setDebugInfo('Profile created successfully');
+            console.error('❌ Error creating profile:', createError);
+        console.log('✅ Profile fetched successfully:', data);
+        setDebugInfo('Profile loaded successfully');
         } catch (error) {
           console.error('Error updating profile after signup:', error);
         }
-      }, 2000);
+      setDebugInfo(`Sign up error: ${error.message}`);
+      console.error('💥 Unexpected error fetching profile:', error);
+      setDebugInfo(`Unexpected profile error: ${error}`);
     }
 
+      console.log('✅ Setting loading to false');
+      setDebugInfo('Ready');
     setLoading(false);
     return { error };
   };
 
   const signOut = async () => {
     setLoading(true);
+    setDebugInfo('Signing in...');
     await supabase.auth.signOut();
     setProfile(null);
+    setDebugInfo('Signing out...');
     setLoading(false);
   };
+    setDebugInfo('Signed out');
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('No user logged in') };
 
     const { error } = await supabase
-      .from('profiles')
+            console.error('❌ Error updating profile:', updateError);
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', user.id);
-
+          console.error('💥 Error updating profile after signup:', error);
     if (!error) {
+      setDebugInfo(`Sign in error: ${error.message}`);
       setProfile(prev => prev ? { ...prev, ...updates } : null);
     }
+    setDebugInfo('Sign up complete');
 
     return { error };
   };
@@ -213,6 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     session,
     loading,
+    debugInfo,
     signIn,
     signUp,
     signOut,
