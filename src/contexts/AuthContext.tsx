@@ -134,8 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // If profile doesn't exist, it should be created by the trigger
         // Just set loading to false and let the user continue
-          console.log('📝 Creating new profile...');
-          setDebugInfo('Creating profile...');
+        console.log('📝 Creating new profile...');
+        setDebugInfo('Creating profile...');
         setProfile(null);
       } else if (data) {
         console.log('Profile fetched successfully:', data);
@@ -194,49 +194,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('id', data.user.id);
 
           if (updateError) {
-            console.log('✅ Profile created successfully:', newProfile);
-    setDebugInfo('Signing up...');
-            setDebugInfo('Profile created successfully');
-            console.error('❌ Error creating profile:', createError);
-        console.log('✅ Profile fetched successfully:', data);
-        setDebugInfo('Profile loaded successfully');
+            console.error('❌ Error updating profile:', updateError);
+          }
         } catch (error) {
           console.error('Error updating profile after signup:', error);
         }
-      setDebugInfo(`Sign up error: ${error.message}`);
-      console.error('💥 Unexpected error fetching profile:', error);
-      setDebugInfo(`Unexpected profile error: ${error}`);
+      }, 1000);
     }
 
-      console.log('✅ Setting loading to false');
-      setDebugInfo('Ready');
     setLoading(false);
     return { error };
   };
 
   const signOut = async () => {
     setLoading(true);
-    setDebugInfo('Signing in...');
+    setDebugInfo('Signing out...');
     await supabase.auth.signOut();
     setProfile(null);
-    setDebugInfo('Signing out...');
+    setDebugInfo('Signed out');
     setLoading(false);
   };
-    setDebugInfo('Signed out');
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('No user logged in') };
 
     const { error } = await supabase
-            console.error('❌ Error updating profile:', updateError);
+      .from('profiles')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', user.id);
-          console.error('💥 Error updating profile after signup:', error);
+
     if (!error) {
-      setDebugInfo(`Sign in error: ${error.message}`);
       setProfile(prev => prev ? { ...prev, ...updates } : null);
     }
-    setDebugInfo('Sign up complete');
 
     return { error };
   };
