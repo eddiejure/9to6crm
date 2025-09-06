@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { AuthProvider } from './contexts/AuthContext';
+import AuthWrapper from './components/auth/AuthWrapper';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './components/Dashboard';
 import QuoteBuilder from './components/quotes/QuoteBuilder';
@@ -62,10 +64,14 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar activeView={activeView} onViewChange={setActiveView} />
-      {renderContent()}
-    </div>
+    <AuthProvider>
+      <AuthWrapper>
+        <div className="flex h-screen bg-gray-100">
+          <Sidebar activeView={activeView} onViewChange={setActiveView} />
+          {renderContent()}
+        </div>
+      </AuthWrapper>
+    </AuthProvider>
   );
 }
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Home, 
   Users, 
@@ -6,7 +7,9 @@ import {
   FileText, 
   Receipt, 
   Settings,
-  PlusCircle
+  PlusCircle,
+  LogOut,
+  Crown
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -15,6 +18,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
+  const { signOut, profile } = useAuth();
+
   const menuItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'clients', icon: Users, label: 'Kunden' },
@@ -24,12 +29,31 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     { id: 'settings', icon: Settings, label: 'Einstellungen' }
   ];
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <div className="h-screen w-64 bg-slate-900 text-white flex flex-col">
       {/* Logo/Brand */}
       <div className="p-6 border-b border-slate-700">
-        <h1 className="text-2xl font-bold text-blue-400">9to6</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-blue-400">9to6</h1>
+          {profile?.role === 'superadmin' && (
+            <Crown className="w-5 h-5 text-yellow-400" />
+          )}
+        </div>
         <p className="text-sm text-slate-400 mt-1">Project Management</p>
+        {profile && (
+          <div className="mt-2">
+            <p className="text-xs text-slate-400">{profile.full_name || profile.email}</p>
+            {profile.role === 'superadmin' && (
+              <span className="inline-block px-2 py-1 text-xs bg-yellow-600 text-yellow-100 rounded-full mt-1">
+                Super Admin
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -68,6 +92,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
 
       {/* Footer */}
       <div className="p-4 border-t border-slate-700">
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors mb-4"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm">Abmelden</span>
+        </button>
         <div className="text-xs text-slate-400">
           <p>© 2025 9to6</p>
           <p>Version 1.0.0</p>

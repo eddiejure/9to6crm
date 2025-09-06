@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { Bell, Search, User } from 'lucide-react';
 
 interface HeaderProps {
@@ -7,6 +8,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
+  const { profile } = useAuth();
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -37,8 +40,12 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
           {/* User Profile */}
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">9to6 Admin</p>
-              <p className="text-xs text-gray-600">Freelancer</p>
+              <p className="text-sm font-medium text-gray-900">
+                {profile?.full_name || profile?.email || 'Benutzer'}
+              </p>
+              <p className="text-xs text-gray-600">
+                {profile?.company_name || 'Freelancer'}
+              </p>
             </div>
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <User className="w-4 h-4 text-white" />
