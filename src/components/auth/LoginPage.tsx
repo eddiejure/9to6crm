@@ -24,9 +24,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onToggleMode }) => {
     const { error } = await signIn(formData.email, formData.password);
 
     if (error) {
-      setError(error.message === 'Invalid login credentials' 
-        ? 'Ungültige E-Mail-Adresse oder Passwort' 
-        : 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+      if (error.message === 'Email not confirmed') {
+        setError('Bitte bestätigen Sie Ihre E-Mail-Adresse. Überprüfen Sie Ihr Postfach und klicken Sie auf den Bestätigungslink.');
+      } else if (error.message === 'Invalid login credentials') {
+        setError('Ungültige E-Mail-Adresse oder Passwort. Falls Sie Ihr Konto bereits erstellt haben, überprüfen Sie bitte Ihre E-Mail-Bestätigung.');
+      } else {
+        setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+      }
     }
 
     setLoading(false);
