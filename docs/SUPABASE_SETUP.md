@@ -375,9 +375,10 @@ INSERT INTO service_templates (name, description, type, base_price, items) VALUE
 -- Optional: Create custom profiles table
 CREATE TABLE IF NOT EXISTS profiles (
     id uuid REFERENCES auth.users(id) PRIMARY KEY,
+    email text NOT NULL,
     company_name text,
     full_name text,
-    email text,
+    role text NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin', 'superadmin')),
     tax_number text,
     vat_id text,
     address jsonb,
@@ -387,11 +388,50 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their own profile"
+CREATE POLICY "Users can read own profile"
+    ON profiles
+    FOR SELECT
+    TO authenticated
+    USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+    ON profiles
+    FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = id);
+
+CREATE POLICY "Superadmins can manage all profiles"
     ON profiles
     FOR ALL
     TO authenticated
-    USING (auth.uid() = id);
+    USING (EXISTS (
+        SELECT 1 FROM profiles 
+        WHERE id = auth.uid() AND role = 'superadmin'
+    ));
+
+CREATE TRIGGER profiles_updated_at
+    BEFORE UPDATE ON profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION handle_updated_at();
+```
+
+### Role Management SQL Commands
+
+```sql
+-- To upgrade a user to admin role (replace USER_EMAIL with actual email)
+UPDATE profiles 
+SET role = 'admin' 
+WHERE email = 'USER_EMAIL';
+
+-- To upgrade a user to superadmin role (replace USER_EMAIL with actual email)
+UPDATE profiles 
+SET role = 'superadmin' 
+WHERE email = 'USER_EMAIL';
+
+-- To find your user ID and current role
+SELECT id, email, role, full_name 
+FROM profiles 
+WHERE email = 'YOUR_EMAIL';
 ```
 
 ## 🚨 Backup & Wartung
