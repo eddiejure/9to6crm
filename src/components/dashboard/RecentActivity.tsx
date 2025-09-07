@@ -101,9 +101,9 @@ const RecentActivity: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
       <div className="p-6 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">Letzte Aktivitäten</h3>
+        <h3 className="text-xl font-bold text-gray-900">Letzte Aktivitäten</h3>
       </div>
       
       <div className="p-6">
@@ -112,8 +112,8 @@ const RecentActivity: React.FC = () => {
             const Icon = getIcon(activity.type);
             
             return (
-              <div key={activity.id} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <div key={activity.id} className="flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-150">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-5 h-5 text-gray-600" />
                 </div>
                 
@@ -124,7 +124,7 @@ const RecentActivity: React.FC = () => {
                     </p>
                     <div className="flex items-center gap-2">
                       {activity.status && (
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(activity.status)}`}>
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(activity.status)}`}>
                           {getStatusText(activity.status)}
                         </span>
                       )}
@@ -141,7 +141,7 @@ const RecentActivity: React.FC = () => {
           })}
         </div>
         
-        <button className="w-full mt-6 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+        <button className="w-full mt-6 py-3 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors duration-150">
           Alle Aktivitäten anzeigen
         </button>
       </div>

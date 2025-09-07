@@ -66,9 +66,11 @@ function App() {
   return (
     <AuthProvider>
       <AuthWrapper>
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex h-screen bg-gray-50">
           <Sidebar activeView={activeView} onViewChange={setActiveView} />
-          {renderContent()}
+          <div className="ml-64 flex-1 overflow-auto">
+            {renderContent()}
+          </div>
         </div>
       </AuthWrapper>
     </AuthProvider>

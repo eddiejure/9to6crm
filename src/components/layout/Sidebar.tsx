@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
   };
 
   return (
-    <div className="h-screen w-64 bg-slate-900 text-white flex flex-col">
+    <div className="fixed left-0 top-0 h-screen w-64 bg-slate-900 text-white flex flex-col z-50 shadow-xl">
       {/* Logo/Brand */}
       <div className="p-6 border-b border-slate-700">
         <div className="flex items-center gap-2">

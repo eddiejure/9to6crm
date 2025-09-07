@@ -7,7 +7,7 @@ import { formatDate, formatCurrency } from '../utils/formatters';
 
 const Dashboard: React.FC = () => {
   return (
-    <div className="flex-1 bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <Header title="Dashboard" subtitle="Willkommen zurück! Hier ist eine Übersicht Ihrer aktuellen Projekte und Finanzen." />
       
       <div className="p-6">
