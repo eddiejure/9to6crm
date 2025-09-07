@@ -1,9 +1,27 @@
 import React from 'react';
 import { Building2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const LoadingSpinner: React.FC = () => {
   const { debugInfo } = useAuth();
+  
+  const handleForceRefresh = () => {
+    window.location.reload();
+  };
+  
+  const handleTestConnection = async () => {
+    try {
+      const { data, error } = await supabase.from('profiles').select('count').limit(1);
+      if (error) {
+        alert(`Connection test failed: ${error.message}`);
+      } else {
+        alert('Connection test successful!');
+      }
+    } catch (error) {
+      alert(`Connection test error: ${error}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -17,12 +35,20 @@ const LoadingSpinner: React.FC = () => {
         <div className="mt-4 p-4 bg-white rounded-lg shadow-sm max-w-md mx-auto">
           <p className="text-xs text-gray-500">Debug Info:</p>
           <p className="text-sm text-gray-700 font-mono">{debugInfo}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-          >
-            Force Refresh
-          </button>
+          <div className="mt-2 space-x-2">
+            <button 
+              onClick={handleForceRefresh} 
+              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+            >
+              Force Refresh
+            </button>
+            <button 
+              onClick={handleTestConnection} 
+              className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+            >
+              Test Connection
+            </button>
+          </div>
         </div>
       </div>
     </div>

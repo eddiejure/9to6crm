@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
         
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('❌ Error getting session:', error);
           setDebugInfo(`Session error: ${error.message}`);
           setLoading(false);
           return;
@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
         }
       } catch (error) {
-        console.error('Error in getInitialSession:', error);
+        console.error('❌ Error in getInitialSession:', error);
         setDebugInfo(`Unexpected error: ${error}`);
         if (mounted) {
           setLoading(false);
@@ -123,22 +123,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('👤 Fetching profile for user:', userId);
       setDebugInfo('Loading profile...');
       
-      // First, let's check if we can access the profiles table at all
-      console.log('🔍 Testing profiles table access...');
-      const { data: testData, error: testError } = await supabase
+      // Test database connection first
+      console.log('🔍 Testing database connection...');
+      const { data: connectionTest, error: connectionError } = await supabase
         .from('profiles')
         .select('count')
         .limit(1);
       
-      if (testError) {
-        console.error('❌ Cannot access profiles table:', testError);
-        setDebugInfo(`Table access error: ${testError.message}`);
+      if (connectionError) {
+        console.error('❌ Database connection failed:', connectionError);
+        setDebugInfo(`Database connection error: ${connectionError.message}`);
         setLoading(false);
         return;
       }
       
-      console.log('✅ Profiles table accessible');
+      console.log('✅ Database connection successful');
+      setDebugInfo('Database connected, fetching profile...');
       
+      // Try to fetch existing profile
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -147,31 +149,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('❌ Error fetching profile:', error);
-        setDebugInfo(`Profile error: ${error.message}`);
+        setDebugInfo(`Profile fetch error: ${error.message}`);
         
-        // If profile not found (e.g., trigger didn't run or race condition)
-        // Attempt to create it directly
+        // If profile not found, try to create it
         if (error.code === 'PGRST116' || error.message.includes('0 rows')) {
           console.log('📝 Profile not found, attempting to create...');
           setDebugInfo('Profile not found, creating...');
           
-          // Use the email passed as parameter or try to get it from session
           const emailToUse = userEmail || user?.email;
           if (emailToUse) {
-            console.log('📧 Using email for profile creation:', emailToUse);
+            console.log('📧 Creating profile with email:', emailToUse);
             const { data: newProfileData, error: createError } = await supabase
               .from('profiles')
               .insert({ 
                 id: userId, 
                 email: emailToUse,
-                role: 'user' // Explicitly set role
+                role: 'user'
               })
               .select('*')
               .single();
 
             if (createError) {
               console.error('❌ Error creating profile:', createError);
-              setDebugInfo(`Error creating profile: ${createError.message}`);
+              setDebugInfo(`Profile creation failed: ${createError.message}`);
+              
+              // Check if it's a permission error
+              if (createError.message.includes('permission') || createError.message.includes('policy')) {
+                setDebugInfo('Permission denied - check RLS policies');
+              }
+              
               setProfile(null);
             } else if (newProfileData) {
               console.log('✅ Profile created successfully:', newProfileData);
@@ -179,13 +185,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setProfile(newProfileData);
             }
           } else {
-            console.warn('❌ User email not available to create profile. UserId:', userId);
-            setDebugInfo('Email not available for profile creation');
+            console.warn('❌ No email available for profile creation');
+            setDebugInfo('No email available for profile creation');
             setProfile(null);
           }
         } else {
           // Other types of errors
           console.error('❌ Other profile error:', error);
+          if (error.message.includes('permission') || error.message.includes('policy')) {
+            setDebugInfo('Permission denied - check RLS policies');
+          } else {
+            setDebugInfo(`Profile error: ${error.message}`);
+          }
           setProfile(null);
         }
       } else if (data) {
@@ -194,7 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(data);
       }
     } catch (error) {
-      console.error('Unexpected error fetching profile:', error);
+      console.error('❌ Unexpected error fetching profile:', error);
       setDebugInfo(`Unexpected error: ${error}`);
       setProfile(null);
     } finally {
@@ -229,11 +240,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error) {
+      setDebugInfo(`Sign up error: ${error.message}`);
       setLoading(false);
       return { error };
     }
 
-    // The trigger will create the basic profile
+    // The trigger should create the basic profile
     // Update it with additional data if user was created
     if (data.user && userData) {
       // Wait a moment for the trigger to create the profile
@@ -252,18 +264,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (updateError) {
             console.error('❌ Error updating profile:', updateError);
+            setDebugInfo(`Profile update error: ${updateError.message}`);
+          } else {
+            console.log('✅ Profile updated with additional data');
+            setDebugInfo('Account created successfully');
           }
         } catch (error) {
-          console.error('❌ Error fetching profile:', error);
-          setDebugInfo(`Profile error: ${error.message}`);
-          setProfile(null);
+          console.error('❌ Error updating profile:', error);
+          setDebugInfo(`Profile update error: ${error}`);
         } finally {
           setLoading(false);
         }
       }, 1000);
+    } else {
+      setLoading(false);
     }
 
-    setLoading(false);
     return { error };
   };
 
